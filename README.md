@@ -106,6 +106,94 @@ Dashboard panels created include:
 
 ---
 
+## ⚠️ Challenges Faced & Solutions
+
+During this Splunk project, I encountered several hurdles. Here's how I tackled them:
+
+### 1. Splunk Service Not Starting
+
+* ❌ **Problem:** Failed to start with "Cannot bind to port 8000"
+* 🔧 **Solution:**
+
+  * Ran `netstat -ano | findstr 8000` to check usage
+  * Killed process with `taskkill /PID <ID> /F`
+  * Restarted with `splunk restart`
+
+### 2. Field Extraction Issues
+
+* ❌ **Problem:** Queries returned no results (missing fields)
+* 🔧 **Solution:**
+
+  * Used `| table _raw` to inspect format
+  * Manually extracted with:
+
+```spl
+| rex field=_raw "(?<http_method>GET|POST|PUT|DELETE)\t"
+```
+
+* Updated `props.conf` for tab-delimited fields
+
+### 3. Incorrect Timestamp Parsing
+
+* ❌ **Problem:** Events had wrong timestamps (e.g., 1970-01-01)
+* 🔧 **Solution:**
+
+  * Added to `props.conf`:
+
+```text
+[access_combined]
+TIME_PREFIX = \d{1,2}/\d{1,2}/\d{2,4}\s+\d{1,2}:\d{2}:\d{2}
+TIME_FORMAT = %m/%d/%y %H:%M:%S
+```
+
+* Re-indexed data
+
+### 4. High CPU Usage During Data Import
+
+* ❌ **Problem:** Splunk consumed 100% CPU
+* 🔧 **Solution:**
+
+  * Limited batch size in `limits.conf`:
+
+```text
+[inputproc]
+max_fd = 5000
+maxKBps = 1024
+```
+
+* Scheduled imports during off-peak hours
+
+### 5. Permission Errors on Windows
+
+* ❌ **Problem:** Splunk couldn’t read logs from `C:\logs\http\`
+* 🔧 **Solution:**
+
+  * Granted full permissions:
+
+    * Right-click folder → Properties → Security → Edit
+    * Added SYSTEM and Splunk User with Full Control
+
+### 6. Dashboard Panels Not Updating
+
+* ❌ **Problem:** Visualizations showed "No results"
+* 🔧 **Solution:**
+
+  * Checked time range picker (default: "Last 15 minutes")
+  * Used `| stats count` to confirm data presence
+  * Rebuilt panels with explicit range:
+
+```spl
+index=web_http earliest=-24h
+```
+
+### 💡 Lessons Learned
+
+* ✔ Always inspect `_raw` before assuming field extractions
+* ✔ Windows permissions can silently block inputs
+* ✔ SPL issues often stem from time formats or missing fields
+
+---
+
 ## 🚀 Key Takeaways
 
 * ✔ Splunk is easy to install but requires **proper data parsing**.
@@ -122,3 +210,4 @@ Dashboard panels created include:
 ---
 
 > 💡 Feel free to fork this project and use it as a starting point for your own Splunk experiments!
+
